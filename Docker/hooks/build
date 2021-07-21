@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# This hook is run by DockerHub when an auto-build is triggered as the build
+# step. A trigger should be set up at dockerhub to build whenever a new tag
+# is pushed to master. It can also be run manually by executing the build.sh
+# script in the root of the Github repository.
+
+###
+# Labeling parameters using ENV or other labeling parameters
+###
+
+# The fully qualified image name with directory.
+imageName="${DOCKER_REPO}"
+
+# Just the base name of the repository
+imageBaseName="${DOCKER_REPO##*/}"
+
+# Path to the docker file relative to the root of this repository
+dockerfilePath="${DOCKERFILE_PATH}"
+
+# The container contents version, the part of the tag before the first "-"
+contentVersion="${DOCKER_TAG%%-*}"
+
+# The container build version, the rest of the tag after the first "-"
+sourceVersion="${DOCKER_TAG#*-}"
+
+title="${imageBaseName} - Ubuntu based R with Bioconductor."
+
+###
+# Static Labeling parameters
+###
+
+spdxLicense="Artistic-2.0"
+licenseFile="https://spdx.org/licenses/Artistic-2.0.html"
+baseImagePrefix="rocker/r-ver"
+description="A base image to extend with bioconductor packages"
+keywords="Bioconductor"
+
+# Describing the image's content (the included Bioconductor)
+contentHome="https://www.bioconductor.org/"
+contentSource="https://bioconductor.org/developers/how-to/git/create-local-repository/"
+contentTitle="Bioconductor Release"
+contentDescription="Minimalist non-official distribution of Bioconductor"
+contentSpdxLicense="Artistic-2.0"
+contentLicenseFile="https://spdx.org/licenses/Artistic-2.0.html"
+contentVendor="Bioconductor"
+contentVendorUrl="https://bioconductor.org/about/"
+
+# Independent of image and content
+labelSchemaVersion="0.0.1"
+vendor="UNC - Lineberger"
+vendorUrl="https://lbc.unc.edu/"
+
+# Constant across my dockers
+labelSchema="io.github.JefferysDockers"
+imageRepoOwner="jefferys"
+sourceRepoOwner="JefferysDockers"
+imageRepoRootUrl="https://hub.docker.com/r"
+sourceRepoRootUrl="https://github.com"
+maintainer="Stuart R. Jefferys <stuart_jefferys@med.unc.edu>"
+
+###
+# End of labeling parameters
+###
+
+# Time created
+created="$(date "+%Y-%m-%dT%H:%M:%S%z")"
+afterPos=$(( ${#created} - 2 ))
+created="${created:0:${afterPos}}:${created:${afterPos}}"
+
+# Full label namespace with unique image id prepended
+NS="${imageRepoOwner}.${imageBaseName}.${labelSchema}"
+
+###
+# Build command.
+###
+
+docker build \
+  --label "${NS}.base-prefix=\"${baseImagePrefix}\"" \
+  --label "${NS}.name=\"${imageBaseName}\"" \
+  --label "${NS}.home=\"${imageRepoRootUrl}/${imageRepoOwner}/${imageBaseName}\"" \
+  --label "${NS}.version=\"${DOCKER_TAG}\"" \
+  --label "${NS}.maintainer=\"${maintainer}\"" \
+  --label "${NS}.source-version=\"${sourceVersion}\"" \
+  --label "${NS}.source-home=\"${sourceRepoRootUrl}/${sourceRepoOwner}/${imageBaseName}\"" \
+  --label "${NS}.source-maintainer=\"${maintainer}\"" \
+  --label "${NS}.pull=\"${imageRepoOwner}/${imageBaseName}:DOCKER_TAG\"" \
+  --label "${NS}.license-spdx=\"${spdxLicense}\"" \
+  --label "${NS}.license-file=\"${licenseFile}\"" \
+  --label "${NS}.vendor=\${vendor}\"" \
+  --label "${NS}.vendorUrl=\"${vendorUrl}\"" \
+  --label "${NS}.title=\"${title}\"" \
+  --label "${NS}.description=\"${description}\"" \
+  --label "${NS}.content-home=\"${contentHome}\"" \
+  --label "${NS}.content-version=\"${contentVersion}\"" \
+  --label "${NS}.content-source=\"${contentSource}\"" \
+  --label "${NS}.content-license-spdx=\"${contentSpdxLicense}\"" \
+  --label "${NS}.content-license-file=\"${contentLicenseFile}\"" \
+  --label "${NS}.content-vendor=\"${contentVendor}\"" \
+  --label "${NS}.content-vendorUrl=\"${contentVendorUrl}\"" \
+  --label "${NS}.content-title=\"${contentTitle}\"" \
+  --label "${NS}.content-description=\"${contentDescription}\"" \
+  --label "${NS}.created=\"${created}\"" \
+  --label "${NS}.label-schema-version=\"${labelSchemaVersion}\"" \
+  --tag "${imageName}:${contentVersion}-${sourceVersion}" \
+  -f ${dockerfilePath} \
+  .
